@@ -1,6 +1,10 @@
 require "myswapigem/version"
+require "httparty"
 
-module Myswapigem
+module MYSWAPIGEM
   class Error < StandardError; end
-  # Your code goes here...
+  URL = 'https://swapi.dev/api/'
 end
+
+require "myswapigem/main"
+require "myswapigem/people"
