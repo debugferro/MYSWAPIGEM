@@ -1,6 +1,6 @@
-RSpec.describe Myswapigem do
+RSpec.describe MYSWAPIGEM do
   it "has a version number" do
-    expect(Myswapigem::VERSION).not_to be nil
+    expect(MYSWAPIGEM::VERSION).not_to be nil
   end
 
   it "does something useful" do
