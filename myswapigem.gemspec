@@ -2,7 +2,7 @@ require_relative 'lib/myswapigem/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "myswapigem"
-  spec.version       = Myswapigem::VERSION
+  spec.version       = MYSWAPIGEM::VERSION
   spec.authors       = ["Gabriel Fontes"]
   spec.email         = ["gabrielferroroque@hotmail.com"]
 
