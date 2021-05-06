@@ -6,6 +6,8 @@ module MYSWAPIGEM
   URL = 'https://swapi.dev/api/'
 end
 
+require "myswapigem/tasks/populate/populator"
+require "myswapigem/railtie" if defined?(Rails)
 require "myswapigem/page"
 require "myswapigem/main"
 require "myswapigem/people"

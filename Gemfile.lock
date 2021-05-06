@@ -1,8 +1,9 @@
 PATH
   remote: .
   specs:
-    myswapigem (0.1.0)
+    myswapigem (0.2.0)
       httparty
+      rake
 
 GEM
   remote: https://rubygems.org/
