@@ -1,10 +1,10 @@
 require 'rake'
 require "myswapigem/tasks/populate/populator"
+require "myswapigem/main"
 
   namespace :populate do
     desc 'popdatabase'
     task people: :environment do
-      include MYSWAPIGEM
-      Populator.new.run
+      MYSWAPIGEM::Populator.new.run
     end
   end
