@@ -1,135 +1,72 @@
 require 'myswapigem/main'
 require 'myswapigem/films'
+require 'myswapigem/planets'
+require 'myswapigem/species'
+require 'myswapigem/vehicles'
+require 'myswapigem/starships'
+
+require 'myswapigem/page'
+require 'myswapigem/tasks/populate/resource'
+require 'myswapigem/tasks/populate/association'
 
 module MYSWAPIGEM
   class Populator
-    def initialize(list_of_resources = %w[People Films])
+    attr_reader :relations
+    def initialize(list_of_resources = %w[People Film Planet Species Starship Vehicle])
       @list_of_resources = list_of_resources
       @total_records = 0
+      @relations = {}
     end
 
     def run
-      @target_class = "MYSWAPIGEM::#{@list_of_resources[0].capitalize}".constantize
-      @target_class = @target_class.new
-      api_results = @target_class.index
-      # api_results_attributes = api_results.first.keys
-      puts @list_of_resources
-      resource_class = "::#{@list_of_resources[0].capitalize}".constantize
-      create_resource(resource_class, api_results)
-
-      # @attributes = ::People.new.attribute_names
-      # @new_record = ::People.new
-      # filter_attributes
-      # @attributes.each do |attribute|
-      #   # @results.each do |result|
-      #     @new_record[attribute] = @results[0][attribute.to_sym]
-
-      # end
-
-      # puts @total_records
-      # puts @records_left
+      register_relations
+      @associations = []
+      @list_of_resources.each do |resource|
+        create_find_update_resources(resource)
+      end
+      update_associations
     end
 
     private
 
-    def create_resource(resource, api_results)
-      new_record = resource.new
+    def create_find_update_resources(resource)
+      @resource_class = "::#{resource.capitalize}".constantize
+      @target_class = "MYSWAPIGEM::#{resource.capitalize.pluralize}".constantize
+      @target_class = @target_class.new
 
-      record_attributes = new_record.attribute_names
+      @page = Page.new
+      until @target_class.done
+        break if @target_class.done
 
-      if api_results.is_a?(Array)
-        api_results_attributes = api_results.first.keys
-        perm_attributes = filter_attributes(new_record, api_results_attributes)
-        result = create_resource_when_array(api_results, perm_attributes, new_record)
-        begin
-        result.save
-        rescue NoMethodError
-          debugger
-        end    
-        puts "Not saved" if result.persisted? == false
-        return result if result.persisted?
-      end
-
-      if api_results.is_a?(Hash)
-        api_results_attributes = api_results.keys
-        perm_attributes = filter_attributes(new_record, api_results_attributes)
-        result = create_resource_when_hash(api_results, perm_attributes, new_record)
-        begin
-        result.save
-        rescue NoMethodError
-          debugger
-        end
-        puts "Not saved" if result.persisted? == false
-        return result if result.persisted?
-      end
-      # perm_attributes = filter_attributes(new_record, api_results_attributes)
-      # print perm_attributes
-      # debugger
-      # api_results.each do |result|
-      #   perm_attributes.each do |attribute|
-      #     resource = check_attribute(attribute, result[attribute.to_sym])
-      #     if resource
-      #       puts new_record[attribute]
-      #       puts resource
-      #       new_record[attribute] << resource
-      #     else
-      #       new_record[attribute] = result[attribute.to_sym]
-      #     end
-      #   end
-      # end
-      # if new_record.save
-      #   puts new_record.persisted?
-      #   new_record
-      # end
-    end
-
-    def check_attribute(attribute, wanted_resource)
-      if @list_of_resources.include?(attribute.to_s.capitalize)
-        results = []
-        record_resource = "::#{attribute.to_s.singularize.capitalize}".constantize
-        gem_class = "MYSWAPIGEM::#{attribute.capitalize}".constantize
-        wanted_resource.each do |resource|
-          api_wanted_result = gem_class.new.find(resource.split('/').last)
-          results << create_resource(record_resource, api_wanted_result)
-        end
-        results
+        request_and_iterate_over_results
+        @page.next_page
       end
     end
 
-    def filter_attributes(record, record_results_attributes)
-      record_results_attributes.filter do |attribute|
-        record.relations.key?(attribute) || attribute != 'id' && record.attribute_names.include?(attribute.to_s)
+    def request_and_iterate_over_results
+      @api_results = @target_class.index(@page.current)
+      @api_results&.each do |result|
+        association = Association.new(@resource_class, @relations)
+        resource = Resource.new(@resource_class, result, @list_of_resources, association, self)
+        created_resource = resource.create
+        @associations << association
+        association.resource = created_resource if created_resource.present?
       end
     end
 
-    def create_resource_when_array(api_results, perm_attributes, new_record)
-      api_results.each do |result|
-        perm_attributes.each do |attribute|
-          resource = check_attribute(attribute, result[attribute.to_sym])
-          if resource
-            puts new_record[attribute]
-            puts resource
-            new_record.public_send(attribute) << resource
-          else
-            new_record[attribute] = result[attribute.to_sym]
-          end
-        end
-      end
-      new_record
+    def update_associations
+      @associations.each(&:create_associations)
     end
 
-    def create_resource_when_hash(result, perm_attributes, new_record)
-      perm_attributes.each do |attribute|
-        resource = check_attribute(attribute, result[attribute.to_sym])
-        if resource
-          puts new_record[attribute]
-          puts resource
-          new_record[attribute] << resource
-        else
-          new_record[attribute] = result[attribute.to_sym]
+    def register_relations
+      @list_of_resources.each do |resource|
+        resource_class = "::#{resource.capitalize}".constantize
+        relations = resource_class.relations
+        relations.each do |name, reference|
+          @relations[resource_class.to_s.to_sym] = {} if @relations[resource_class.to_s.to_sym].nil?
+          @relations[resource_class.to_s.to_sym][name.to_s] = reference.options[:class_name]
         end
       end
-      new_record
     end
   end
 end
