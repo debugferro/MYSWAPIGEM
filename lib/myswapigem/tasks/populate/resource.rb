@@ -70,8 +70,9 @@ module MYSWAPIGEM
 
     # Verificando se o update dos dados é permitida
     def update_allowed?
-      env = ENV['allow_update']
-      env_condition = YAML.safe_load(ENV['allow_update']) if env
+      env = ENV['disable_update']
+      env_condition = YAML.safe_load(ENV['disable_update']) if env
+      env_condition = true if env.nil?
       env_condition && @found_resource.present?
     end
 
